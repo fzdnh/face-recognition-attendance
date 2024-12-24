@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+
+    <title>Face Recognition Based Attendance System</title>
+</head>
+
+<body class="bg-white">
+
+    <div class='mt-5 text-center'>
+        <h1 class="text-primary fw-bold">Face Recognition Based Attendance System - {{ algo }}</h1>
+    </div>
+
+    {% if mess %}
+    <p class="text-center text-danger fs-4">{{ mess }}</p>
+    {% endif %}
+
+    <div class="container mt-4">
+        <div class="row g-4">
+
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h2>Today's Attendance <i class="material-icons">assignment</i></h2>
+                    </div>
+                    <div class="card-body">
+                        <a href="/start" class="btn btn-primary btn-lg w-100 mb-3">Take Attendance <i
+                                class="material-icons">beenhere</i></a>
+
+                        <table id="attendanceTable" class="table table-bordered table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Staff Name</th>
+                                    <th>Staff ID</th>
+                                    <th>Time In</th>
+                                    <th>Time Out</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if l %}
+                                {% for i in range(l) %}
+                                <tr>
+                                    <td>{{ i+1 }}</td>
+                                    <td>{{ names[i] }}</td>
+                                    <td>{{ rolls[i] }}</td>
+                                    <td>{{ times_in[i] }}</td>
+                                    <td>{{ times_out[i] }}</td>
+                                </tr>
+                                {% endfor %}
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow">
+                    <div class="card-header bg-danger text-white">
+                        <h2>Add New User <i class="material-icons">control_point_duplicate</i></h2>
+                    </div>
+                    <div class="card-body">
+                        <form action='/add' method="POST" enctype="multipart/form-data">
+                            <div class="mb-3">
+                                <label for="newusername" class="form-label fw-bold">Enter New User Name*</label>
+                                <input type="text" id="newusername" name="newusername" class="form-control"
+                                    required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="newuserid" class="form-label fw-bold">Enter New User ID*</label>
+                                <input type="number" id="newuserid" name="newuserid" class="form-control" required>
+                            </div>
+
+                            <button type="submit" class="btn btn-dark btn-lg w-100">Add New User</button>
+                        </form>
+
+                        <!-- Button to display users -->
+                        <div class="text-center mt-4">
+                            <button class="btn btn-info" id="show-users">Show Users</button>
+                            <h5>Total Users in Database: {{totalreg}}</h5>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if facereco == False %}
+    <div class="text-center mt-5">
+        <button class="btn btn-success btn-lg" id="train-btn">Train Model <i class="material-icons">build</i></button>
+    </div>
+
+        <!-- Progress Section -->
+        <div id="progress-section">
+            <p>Training Progress: <span id="progress-value">0</span>%</p>
+            <div id="progress-bar" style="width: 100%; background-color: #f3f3f3;">
+                <div id="progress-fill" style="width: 0%; height: 20px; background-color: #4caf50;"></div>
+            </div>
+            <p id="completion-message" style="color: green; display: none;">Training completed successfully!</p>
+        </div>
+    {% elif facereco == True %}
+    <div class="text-center mt-5">
+        <button class="btn btn-success btn-lg" id="reload-btn">Reload Dataset <i class="material-icons">build</i></button>
+    </div>
+    
+        <!-- Progress Section -->
+        <div id="progress-section" style="display: none;">
+            <p>Reloading Progress: <span id="progress-value">0</span>%</p>
+            <div id="progress-bar" style="width: 100%; background-color: #f3f3f3;">
+                <div id="progress-fill" style="width: 0%; height: 20px; background-color: #4caf50;"></div>
+            </div>
+            <p id="completion-message" style="color: green; display: none;">Reload completed successfully!</p>
+        </div>
+    {% endif %}
+
+    </div>
+
+    <!-- Modal for displaying users -->
+    <div class="modal fade" id="usersModal" tabindex="-1" aria-labelledby="usersModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="usersModalLabel">Users</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="user-list" class="list-group">
+                        <!-- User names will be populated here -->
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+
+        $(document).ready(function() {
+            checkProgress();  // Start checking progress when the document is ready
+        });
+        $(document).ready(function() {
+            // Fetch users and display in modal
+            $('#show-users').on('click', function() {
+                $.getJSON('/users', function(data) {
+                    $('#user-list').empty();  // Clear existing list items
+                    if (data.length === 0) {
+                        $('#user-list').append('<li class="list-group-item">No users found.</li>');
+                    } else {
+                        data.forEach(function(username) {
+                            $('#user-list').append(
+                                '<li class="list-group-item d-flex justify-content-between align-items-center">' +
+                                username +
+                                '<button class="btn btn-danger btn-sm remove-user" data-username="' + username + '">Remove</button>' +
+                                '</li>'
+                            );
+                        });
+                    }
+                    $('#usersModal').modal('show');  // Show modal
+                });
+            });
+
+            // Remove user on button click
+            $(document).on('click', '.remove-user', function() {
+                const username = $(this).data('username');
+                $.post('/remove_user/' + username, function(response) {
+                    alert(response.message);
+                    location.reload();  // Refresh the page to see changes
+                }).fail(function() {
+                    alert('Failed to remove user.');
+                });
+            });
+
+            // Train model and update progress bar
+            $('#train-btn').on('click', function() {
+                $.ajax({
+                    type: 'GET',
+                    url: '/train',
+                    success: function(data) {
+                        console.log(data);
+                    }
+                });
+
+                var progressBar = $('#progress-bar');
+                var progress = 0;
+
+                function updateProgress() {
+                    $.ajax({
+                        type: 'GET',
+                        url: '/progress',
+                        success: function(data) {
+                            progress = data.progress;
+                            progressBar.css('width', progress + '%');
+                            progressBar.text(progress + '%');
+                        }
+                    });
+                }
+
+                setInterval(updateProgress, 1000);
+            });
+
+            document.getElementById('reload-btn').addEventListener('click', function() {
+                document.getElementById('progress-section').style.display = 'block';
+                this.disabled = true; // Disable the button immediately
+                fetch('/reload').then(response => {
+                    if (response.ok) {
+                        checkProgress();
+                    } else {
+                        this.disabled = false; // Re-enable button if fetch fails
+                    }
+                });
+            });
+
+            function checkProgress() {
+                fetch('/progress').then(response => response.json()).then(data => {
+                    document.getElementById('progress-value').innerText = data.progress;
+                    document.getElementById('progress-fill').style.width = data.progress + '%';
+
+                    if (data.progress < 100) {
+                        setTimeout(checkProgress, 100); // Check progress again after 100ms
+                    } else {
+                        document.getElementById('completion-message').style.display = 'block';
+                        // Optionally, you can disable the reload button to prevent multiple clicks
+                        document.getElementById('reload-btn').disabled = true;
+                    }
+                });
+            } 
+        });
+        function fetchAttendanceData() {
+        $.getJSON('/attendance_data', function(data) {
+            // Update the table with new data
+            $('#attendanceTable tbody').empty(); // Clear existing table body
+            for (let i = 0; i < data.length; i++) {
+                $('#attendanceTable tbody').append(
+                    `<tr>
+                        <td>${i + 1}</td>
+                        <td>${data.names[i]}</td>
+                        <td>${data.rolls[i]}</td>
+                        <td>${data.times_in[i]}</td>
+                        <td>${data.times_out[i]}</td>
+                    </tr>`
+                );
+            }
+        });
+    }
+
+    // Fetch attendance data every 5 seconds
+    setInterval(fetchAttendanceData, 5000);
+    </script>
+
+</body>
+
+</html>
